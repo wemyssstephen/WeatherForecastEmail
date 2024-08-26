@@ -49,15 +49,28 @@ def main():
         log("Weather data received successfully.")
 
         # Insert data into database
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         sql = """INSERT INTO weather_forecast
-                 (city, forecast_date, weather_code, temp_max, temp_min, 
+                 (city, updated_at, forecast_date, weather_code, temp_max, temp_min, 
                   sunrise, sunset, precipitation_sum, precipitation_hours, precipitation_probability)
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 ON DUPLICATE KEY UPDATE
+                 city = VALUES(city),
+                 updated_at = VALUES(updated_at),
+                 weather_code = VALUES(weather_code),
+                 temp_max = VALUES(temp_max),
+                 temp_min = VALUES(temp_min),
+                 sunrise = VALUES(sunrise),
+                 sunset = VALUES(sunset),
+                 precipitation_sum = VALUES(precipitation_sum),
+                 precipitation_hours = VALUES(precipitation_hours),
+                 precipitation_probability = VALUES(precipitation_probability)"""
 
         daily = weather_data['daily']
         for i in range(len(daily['time'])):
             values = (
                 "York,GB",
+                current_time,
                 datetime.fromisoformat(daily['time'][i]).date(),
                 str(daily['weather_code'][i]),
                 float(daily['temperature_2m_max'][i]),
@@ -66,20 +79,21 @@ def main():
                 daily['sunset'][i],
                 float(daily['precipitation_sum'][i]),
                 float(daily['precipitation_hours'][i]),
-                float(daily['precipitation_probability_mean'][i])
+                float(daily['precipitation_probability_mean'][i]),
             )
+
             try:
                 cursor.execute(sql, values)
                 db.commit()
-                print(f"Data inserted correctly for {values[1]}")
+                print(f"Data inserted correctly for {values[2]}")
             except mysql.connector.Error as err:
-                print(f"Data received, but MySQL error prevented inserting data for {values[1]}")
+                print(f"Data received, but MySQL error prevented inserting data for {values[2]}")
+                print(f"The error received was: {err}")
                 db.rollback()
 
     except Exception as err:
         log(f"Error fetching or processing the weather data: {err}")
         log(f"Weather data structure: {weather_data}")
-
 
     # Close database connection
     cursor.close()
