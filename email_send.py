@@ -3,7 +3,62 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from main import get_forecast, descriptions_mapping, log
+def log(message):
+    print(f"{datetime.now()}: {message}")
+    sys.stdout.flush()
+
+
+def descriptions_mapping(weather_code):
+    """Collect the descriptions and image based on weather code."""
+    with open("descriptions.json", "r") as f:
+        weather_descriptions = json.load(f)
+
+    # Select the correct descriptions using weather_code -- Note always for "day".
+    weather_info = weather_descriptions.get(str(weather_code), {}).get("day", {})
+
+    # Return dictionary with description and image.
+    return {
+        "description": weather_info.get("description", "Unknown"),
+        "image": weather_info.get("image", "Unknown"),
+    }
+
+
+def get_forecast(db_password=os.environ.get("WEATHER_DB_PASSWORD")):
+    """Collect data from SQL table for inputting into email"""
+    today_sql =     """SELECT * FROM weather_forecast
+                    WHERE forecast_date = CURDATE();"""
+    tomorrow_sql =  """SELECT * FROM weather_forecast
+                    WHERE forecast_date = CURDATE()+interval 1 day;"""
+
+    try:
+        # Connect to database.
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password=db_password,
+            database="weather_project"
+        )
+        cursor = db.cursor(dictionary=True)
+
+        # Grab today's data.
+        log("Attempting to get forecast.")
+        cursor.execute(today_sql)
+        today_forecast = cursor.fetchone()
+
+        # Grab tomorrow's data
+        cursor.execute(tomorrow_sql)
+        tomorrow_forecast = cursor.fetchone()
+
+        # Close database connection and return data.
+        log("Forecast data collected.")
+        cursor.close()
+        db.close()
+        return today_forecast, tomorrow_forecast
+
+    # Catch errors with database connection.
+    except mysql.connector.Error as err:
+        log(f"Database connection error: {err}")
+        sys.exit(1)
 
 
 def format_email(db_password=os.environ.get("WEATHER_DB_PASSWORD")):
