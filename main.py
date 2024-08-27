@@ -148,7 +148,6 @@ def collect_data():
     # Catch errors in processing the weather data.
     except Exception as err:
         log(f"Error fetching or processing the weather data: {err}")
-        log(f"Weather data structure: {weather_data}")
 
     # Close database connection
     cursor.close()
