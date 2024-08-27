@@ -2,6 +2,7 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
 from main import get_forecast, descriptions_mapping, log
 
 
@@ -82,14 +83,15 @@ def format_email(db_password=os.environ.get("WEATHER_DB_PASSWORD")):
         print(f"Error while formatting the email: {e}")
 
 
-def email_send(message):
+def email_send():
     # Initialise sending email account
-    host = "smtp.gmail.com"
+    host = "smtp-mail.outlook.com"
     port = 587
 
-    from_addr = "weatheralert089@gmail.com"
+    from_addr = "weatheralert098@outlook.com"
     to_addr = "wemyssstephen@gmail.com"
     password = os.environ.get("WEATHER_EMAIL_PASSWORD")
+
 
     # Create email
     message = MIMEMultipart("alternative")
@@ -104,23 +106,23 @@ def email_send(message):
 
     # Send the email
     try:
-        smtp = smtplib.SMTP(host, port)
-        status_code, response = smtp.ehlo()
-        log(f"Contacting the server: {status_code}, {response}")
-
-        status_code, response = smtp.starttls()
-        log(f"Starting TLS connection: {status_code}, {response}")
-
-        status_code, response = smtp.login(from_addr, password)
-        log(f"Login successful: {status_code}, {response}")
-
-        smtp.sendmail(from_addr, to_addr, message)
-        smtp.quit()
+        log(f"Connection to {host}: {port}")
+        with smtplib.SMTP(host, port, timeout=30) as server:
+            server.ehlo()
+            log("Connection established.")
+            log("TLS starting...")
+            server.starttls()
+            server.ehlo()
+            log("Logging in...")
+            server.login(from_addr, password)
+            log("Login successful.")
+            log("Sending email...")
+            server.sendmail(from_addr, to_addr, message.as_string())
+            log("Email sent!")
+    except smtplib.SMTPException as e:
+        log(f"SMTP exception: {e}")
     except Exception as e:
         log(f"Error while sending email: {e}")
-
-if __name__ == '__main__':
-    email_send()
 
 
 
