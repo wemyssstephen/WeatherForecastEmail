@@ -9,7 +9,7 @@ def log(message):
     sys.stdout.flush()
 
 
-def get_forecast(db_password):
+def get_forecast(db_password=os.environ.get("WEATHER_DB_PASSWORD")):
     """Collect data from SQL table for inputting into email"""
     today_sql =     """SELECT * FROM weather_forecast
                     WHERE forecast_date = CURDATE();"""
