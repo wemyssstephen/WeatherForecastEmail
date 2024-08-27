@@ -4,14 +4,21 @@ import mysql.connector
 from datetime import datetime
 from email_send import *
 
-def get_forecast():
-    """Collect data from SQL table for inputting into email"""
+def log(message):
+    print(f"{datetime.now()}: {message}")
+    sys.stdout.flush()
 
+
+def get_forecast(db_password):
+    """Collect data from SQL table for inputting into email"""
     today_sql =     """SELECT * FROM weather_forecast
                     WHERE forecast_date = CURDATE();"""
     tomorrow_sql =  """SELECT * FROM weather_forecast
                     WHERE forecast_date = CURDATE()+interval 1 day;"""
+
+
     try:
+        # Connect to database.
         db = mysql.connector.connect(
             host="localhost",
             user="root",
@@ -20,19 +27,22 @@ def get_forecast():
         )
         cursor = db.cursor(dictionary=True)
 
+        # Grab today's data.
         log("Attempting to get forecast.")
         cursor.execute(today_sql)
         today_forecast = cursor.fetchone()
 
+        # Grab tomorrow's data
         cursor.execute(tomorrow_sql)
         tomorrow_forecast = cursor.fetchone()
 
+        # Close database connection and return data.
         log("Forecast data collected.")
         cursor.close()
         db.close()
-
         return today_forecast, tomorrow_forecast
 
+    # Catch errors with database connection.
     except mysql.connector.Error as err:
         log(f"Database connection error: {err}")
         sys.exit(1)
@@ -43,23 +53,21 @@ def descriptions_mapping(weather_code):
     with open("descriptions.json", "r") as f:
         weather_descriptions = json.load(f)
 
+    # Select the correct descriptions using weather_code -- Note always for "day".
     weather_info = weather_descriptions.get(str(weather_code), {}).get("day", {})
 
+    # Return dictionary with description and image.
     return {
         "description": weather_info.get("description", "Unknown"),
         "image": weather_info.get("image", "Unknown"),
     }
 
 
-def log(message):
-    print(f"{datetime.now()}: {message}")
-    sys.stdout.flush()
-
 def main():
     log("Script started.")
 
+    # Load database password.
     db_password = os.environ.get("WEATHER_DB_PASSWORD")
-
     if not db_password:
         log("Error: Environment variables not set properly.")
         sys.exit(1)
@@ -111,6 +119,7 @@ def main():
                  precipitation_hours = VALUES(precipitation_hours),
                  precipitation_probability = VALUES(precipitation_probability)"""
 
+        # Iterate through JSON response for each day's values
         daily = weather_data['daily']
         for i in range(len(daily['time'])):
             values = (
@@ -126,7 +135,7 @@ def main():
                 float(daily['precipitation_hours'][i]),
                 float(daily['precipitation_probability_mean'][i]),
             )
-
+            # Insert the data for each day
             try:
                 cursor.execute(sql, values)
                 db.commit()
@@ -136,6 +145,7 @@ def main():
                 print(f"The error received was: {err}")
                 db.rollback()
 
+    # Catch errors in processing the weather data.
     except Exception as err:
         log(f"Error fetching or processing the weather data: {err}")
         log(f"Weather data structure: {weather_data}")
