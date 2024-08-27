@@ -1,7 +1,6 @@
-import os, sys, requests, json
+import requests
 import mysql.connector
 
-from datetime import datetime
 from email_send import *
 
 def collect_data():
@@ -101,6 +100,7 @@ def run_weather_app():
     """Collects data and sends email"""
     collect_data()
     email_send()
+
 
 if __name__ == "__main__":
     run_weather_app()
