@@ -16,7 +16,6 @@ def get_forecast(db_password=os.environ.get("WEATHER_DB_PASSWORD")):
     tomorrow_sql =  """SELECT * FROM weather_forecast
                     WHERE forecast_date = CURDATE()+interval 1 day;"""
 
-
     try:
         # Connect to database.
         db = mysql.connector.connect(
@@ -157,6 +156,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+    email_send()
+
 
 
 
