@@ -1,4 +1,7 @@
-import main
+from dotenv import load_dotenv
+load_dotenv()
+
+import main, os
 
 def run_job():
     """Schedules app to run at 00:30 if computer is on."""
