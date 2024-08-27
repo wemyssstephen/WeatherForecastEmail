@@ -9,6 +9,21 @@ def log(message):
     sys.stdout.flush()
 
 
+def descriptions_mapping(weather_code):
+    """Collect the descriptions and image based on weather code."""
+    with open("descriptions.json", "r") as f:
+        weather_descriptions = json.load(f)
+
+    # Select the correct descriptions using weather_code -- Note always for "day".
+    weather_info = weather_descriptions.get(str(weather_code), {}).get("day", {})
+
+    # Return dictionary with description and image.
+    return {
+        "description": weather_info.get("description", "Unknown"),
+        "image": weather_info.get("image", "Unknown"),
+    }
+
+
 def get_forecast(db_password=os.environ.get("WEATHER_DB_PASSWORD")):
     """Collect data from SQL table for inputting into email"""
     today_sql =     """SELECT * FROM weather_forecast
@@ -47,22 +62,8 @@ def get_forecast(db_password=os.environ.get("WEATHER_DB_PASSWORD")):
         sys.exit(1)
 
 
-def descriptions_mapping(weather_code):
-    """Collect the descriptions and image based on weather code."""
-    with open("descriptions.json", "r") as f:
-        weather_descriptions = json.load(f)
-
-    # Select the correct descriptions using weather_code -- Note always for "day".
-    weather_info = weather_descriptions.get(str(weather_code), {}).get("day", {})
-
-    # Return dictionary with description and image.
-    return {
-        "description": weather_info.get("description", "Unknown"),
-        "image": weather_info.get("image", "Unknown"),
-    }
-
-
-def main():
+def collect_data():
+    """Connects to weather API and updates MySQL database with new data."""
     log("Script started.")
 
     # Load database password.
@@ -154,9 +155,14 @@ def main():
     db.close()
     log("Script finished.")
 
-if __name__ == "__main__":
-    main()
+
+def run_weather_app():
+    """Collects data and sends email"""
+    collect_data()
     email_send()
+
+if __name__ == "__main__":
+    run_weather_app()
 
 
 
