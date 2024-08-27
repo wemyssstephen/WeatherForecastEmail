@@ -1,9 +1,54 @@
-import os
-import sys
-import requests
-
+import os, sys, requests, json
 import mysql.connector
+
 from datetime import datetime
+from email_send import *
+
+def get_forecast():
+    """Collect data from SQL table for inputting into email"""
+
+    today_sql =     """SELECT * FROM weather_forecast
+                    WHERE forecast_date = CURDATE();"""
+    tomorrow_sql =  """SELECT * FROM weather_forecast
+                    WHERE forecast_date = CURDATE()+interval 1 day;"""
+    try:
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password=db_password,
+            database="weather_project"
+        )
+        cursor = db.cursor(dictionary=True)
+
+        log("Attempting to get forecast.")
+        cursor.execute(today_sql)
+        today_forecast = cursor.fetchone()
+
+        cursor.execute(tomorrow_sql)
+        tomorrow_forecast = cursor.fetchone()
+
+        log("Forecast data collected.")
+        cursor.close()
+        db.close()
+
+        return today_forecast, tomorrow_forecast
+
+    except mysql.connector.Error as err:
+        log(f"Database connection error: {err}")
+        sys.exit(1)
+
+
+def descriptions_mapping(weather_code):
+    """Collect the descriptions and image based on weather code."""
+    with open("descriptions.json", "r") as f:
+        weather_descriptions = json.load(f)
+
+    weather_info = weather_descriptions.get(str(weather_code), {}).get("day", {})
+
+    return {
+        "description": weather_info.get("description", "Unknown"),
+        "image": weather_info.get("image", "Unknown"),
+    }
 
 
 def log(message):
